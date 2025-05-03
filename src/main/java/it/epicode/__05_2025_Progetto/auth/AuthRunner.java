@@ -1,11 +1,18 @@
 package it.epicode.__05_2025_Progetto.auth;
 
+import com.github.javafaker.Faker;
+import it.epicode.__05_2025_Progetto.common.FakerConfig;
+import it.epicode.__05_2025_Progetto.eventi.Evento;
+import it.epicode.__05_2025_Progetto.eventi.EventoRepository;
+import it.epicode.__05_2025_Progetto.eventi.EventoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
 
@@ -18,26 +25,46 @@ public class AuthRunner implements ApplicationRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private Faker faker;
+
+    @Autowired
+    private EventoService eventoService;
+
+    @Autowired
+    private EventoRepository eventoRepository;
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
         // Creazione dell'utente admin se non esiste
+        AppUser organizzatore;
         Optional<AppUser> adminUser = appUserService.findByUsername("admin");
         if (adminUser.isEmpty()) {
-            appUserService.registerUser("admin", "adminpwd", Set.of(Role.ROLE_ADMIN));
+            organizzatore = appUserService.registerUser("admin", "adminpwd", Set.of(Role.ROLE_ORGANIZZATORE));
+        } else {
+            organizzatore = adminUser.get();
         }
 
-        // Creazione dell'utente user se non esiste
+        // Creazione utenti normali
         Optional<AppUser> normalUser = appUserService.findByUsername("user");
         if (normalUser.isEmpty()) {
-            appUserService.registerUser("user", "userpwd", Set.of(Role.ROLE_USER));
+            for (int i = 0; i < 10; i++) {
+                appUserService.registerUser(faker.name().username(), "userpwd", Set.of(Role.ROLE_UTENTE_NORMALE));
+            }
         }
 
-        // Creazione dell'utente seller se non esiste
-        Optional<AppUser> normalSeller = appUserService.findByUsername("seller");
-        if (normalUser.isEmpty()) {
-            appUserService.registerUser("seller", "sellerpwd", Set.of(Role.ROLE_SELLER));
+        // Creazione eventi
+        for (int i = 0; i < 5; i++) {
+            Evento evento = new Evento();
+            evento.setTitolo(faker.book().title());
+            evento.setDescrizione(faker.lorem().sentence());
+            evento.setNumeroPostiDisponibili(100);
+            evento.setLuogo(faker.address().city());
+            evento.setOrganizzatore(organizzatore); // Ora è definito
+            evento.setData(LocalDate.now().plusDays(faker.number().numberBetween(1, 30)));
+
+            eventoRepository.save(evento); // Assicurati che questo metodo esista
         }
 
 
-    }
-}
+    }}
